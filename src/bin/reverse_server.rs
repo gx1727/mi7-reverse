@@ -9,9 +9,16 @@ type SharedPool = Arc<Mutex<VecDeque<TcpStream>>>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let client_listener = TcpListener::bind("0.0.0.0:7000").await?;
-    let user_listener = TcpListener::bind("0.0.0.0:8080").await?;
+    let client_addr = std::env::var("CLIENT_ADDR").unwrap_or_else(|_| "0.0.0.0:7000".to_string());
+    let user_addr = std::env::var("USER_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+    
+    let client_listener = TcpListener::bind(&client_addr).await?;
+    let user_listener = TcpListener::bind(&user_addr).await?;
     let client_pool: SharedPool = Arc::new(Mutex::new(VecDeque::new()));
+
+    println!("服务器启动在:");
+    println!("- 客户端连接地址: {}", client_addr);
+    println!("- 用户访问地址: {}", user_addr);
 
     // 接收 client 保持连接
     {
