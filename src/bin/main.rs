@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
-use std::process;
-use tokio::process::Command;
+use mi7_reverse::{server, client};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -67,16 +66,7 @@ async fn main() -> anyhow::Result<()> {
             println!("客户端连接地址: {}", client_addr);
             println!("用户访问地址: {}", user_addr);
             
-            let status = Command::new("cargo")
-                .args(["run", "--bin", "reverse_server"])
-                .env("CLIENT_ADDR", client_addr)
-                .env("USER_ADDR", user_addr)
-                .status()
-                .await?;
-                
-            if !status.success() {
-                process::exit(1);
-            }
+            server::run_server(&client_addr, &user_addr).await?;
         }
         
         Commands::Client { server_addr, target_addr, product_id } => {
@@ -85,17 +75,7 @@ async fn main() -> anyhow::Result<()> {
             println!("目标地址: {}", target_addr);
             println!("商品ID: {}", product_id);
             
-            let status = Command::new("cargo")
-                .args(["run", "--bin", "reverse_client"])
-                .env("SERVER_ADDR", server_addr)
-                .env("TARGET_ADDR", target_addr)
-                .env("PRODUCT_ID", product_id)
-                .status()
-                .await?;
-                
-            if !status.success() {
-                process::exit(1);
-            }
+            client::run_client(&server_addr, &target_addr, &product_id).await?;
         }
         
         Commands::Start { client_addr, user_addr, target_addr, product_id } => {
@@ -107,12 +87,7 @@ async fn main() -> anyhow::Result<()> {
             
             // 启动服务器
             let server_handle = tokio::spawn(async move {
-                Command::new("cargo")
-                    .args(["run", "--bin", "reverse_server"])
-                    .env("CLIENT_ADDR", client_addr)
-                    .env("USER_ADDR", user_addr)
-                    .status()
-                    .await
+                server::run_server(&client_addr, &user_addr).await
             });
             
             // 等待服务器启动
@@ -120,13 +95,11 @@ async fn main() -> anyhow::Result<()> {
             
             // 启动客户端
             let client_handle = tokio::spawn(async move {
-                Command::new("cargo")
-                    .args(["run", "--bin", "reverse_client"])
-                    .env("SERVER_ADDR", format!("127.0.0.1:{}", client_addr_clone.split(':').last().unwrap_or("7000")))
-                    .env("TARGET_ADDR", target_addr_clone)
-                    .env("PRODUCT_ID", product_id_clone)
-                    .status()
-                    .await
+                client::run_client(
+                    &format!("127.0.0.1:{}", client_addr_clone.split(':').last().unwrap_or("7000")),
+                    &target_addr_clone,
+                    &product_id_clone
+                ).await
             });
             
             // 等待两个进程完成
@@ -134,12 +107,12 @@ async fn main() -> anyhow::Result<()> {
             
             if let Err(e) = server_result? {
                 eprintln!("服务器错误: {}", e);
-                process::exit(1);
+                std::process::exit(1);
             }
             
             if let Err(e) = client_result? {
                 eprintln!("客户端错误: {}", e);
-                process::exit(1);
+                std::process::exit(1);
             }
         }
     }

@@ -7,13 +7,9 @@ use tokio::spawn;
 
 type SharedPool = Arc<Mutex<VecDeque<TcpStream>>>;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let client_addr = std::env::var("CLIENT_ADDR").unwrap_or_else(|_| "0.0.0.0:7000".to_string());
-    let user_addr = std::env::var("USER_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
-    
-    let client_listener = TcpListener::bind(&client_addr).await?;
-    let user_listener = TcpListener::bind(&user_addr).await?;
+pub async fn run_server(client_addr: &str, user_addr: &str) -> anyhow::Result<()> {
+    let client_listener = TcpListener::bind(client_addr).await?;
+    let user_listener = TcpListener::bind(user_addr).await?;
     let client_pool: SharedPool = Arc::new(Mutex::new(VecDeque::new()));
 
     println!("服务器启动在:");
@@ -63,4 +59,4 @@ async fn main() -> anyhow::Result<()> {
             }
         });
     }
-}
+} 
