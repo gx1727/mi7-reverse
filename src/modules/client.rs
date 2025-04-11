@@ -37,4 +37,4 @@ pub async fn run_client(server_addr: &str, target_addr: &str, product_id: &str) 
 
         sleep(Duration::from_secs(5)).await;
     }
-} 
+}
