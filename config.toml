@@ -1,0 +1,7 @@
+[server]
+client_addr = "0.0.0.0:7000"
+user_addr = "0.0.0.0:8080"
+
+[client]
+server_addr = "127.0.0.1:7000"
+target_addr = "127.0.0.1:9502" 
